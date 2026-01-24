@@ -1,187 +1,266 @@
 <script setup>
-import { ref } from 'vue'
+import { ref, reactive, watch } from 'vue'
+import { useTaskStore } from 'src/stores/task'
+import AddTaskDialog from 'src/components/AddTaskDialog.vue'
+const taskStore = useTaskStore();
+// Basic Alert
 
 
-const check1 = ref(true)
-const check2 = ref(false)
-const check3 = ref(false)
-
-const notif1 = ref(true)
-const notif2 = ref(true)
-const notif3 = ref(false)
-
-const volume = ref(6)
-const brightness = ref(3)
-const mic = ref(8)
 
 
-const tasks = [
-	{
-		id: 1,
-		name: "Go to shop",
-		completed: false,
-	}
-	{
-		id: 2,
-		name: "Get Bananas",
-		completed: false,
-	}
-	{
-		id: 3,
-		name: "Do the homework",
-		completed: false,
-	}
-]
-  
+const addDialog = ref(false)
+const showDeleteDialog = ref(false);
+const showEditDialog = ref(false);
+const selectedTask = ref(null);
+const tasks = taskStore.tasks
+
+const formTask = reactive({
+  id: null,
+  name: '',
+  completed: false,
+  dueDate: '',
+  dueTime: ''
+})
+
+const addTask = (newTask) => {
+  if (newTask.name.trim() === '') {
+    return
+  }
+  const id = taskStore.tasks.length ? Math.max(...taskStore.tasks.map(t => t.id)) + 1 : 1
+  newTask = {
+    id: id,
+    name: newTask.name,
+    completed: false,
+    dueDate: new Date().toISOString().split('T')[0],
+    dueTime: new Date().toTimeString().split(' ')[0].slice(0,5)
+  }
+  taskStore.tasks.push(newTask)
+  closeAddDialog();
+}
+
+const clearNewTask = () => {
+  formTask.value = {
+    id: null,
+    name: '',
+    completed: false,
+    dueDate: '',
+    dueTime: ''
+  }
+}
+
+const closeAddDialog = () => {
+  addDialog.value = false;
+  clearNewTask();
+};
+const confirmDelete = (task) => {
+    selectedTask.value = { ...task };
+    showDeleteDialog.value = true
+};
+
+const editTask = (task) => {
+    selectedTask.value = { ...task };
+    showEditDialog.value = true;
+};
+
+const closeDeleteDialog = () => {
+    selectedTask.value = null;
+    showDeleteDialog.value = false;
+};
+
+const closeEditDialog = () => {
+    selectedTask.value = null;
+    showEditDialog.value = false;
+    clearNewTask();
+};
+
+const updateTask = () => {
+  if (!selectedTask.value) return;
+  if (selectedTask.value.name.trim() === '') {
+    return;
+  }
+  const index = taskStore.tasks.findIndex(t => t.id === selectedTask.value.id);
+  if (index !== -1) {
+    taskStore.tasks[index].name = selectedTask.value.name;
+  }
+  closeEditDialog();
+}
+
+// Borrar la tarea
+const deleteTask = () => {
+  if (!selectedTask.value) return;
+  taskStore.tasks.splice(
+    taskStore.tasks.findIndex(t => t.id === selectedTask.value.id),
+    1
+  );
+  closeDeleteDialog();
+}
+
+watch(
+  () => taskStore.tasks,
+  () => {
+    localStorage.setItem('tasks', JSON.stringify(tasks))
+  },
+  { deep: true }
+)
+
+const debug = () => {
+  alert("Tasks status:" + JSON.stringify({tasks: tasks}, null, 4))
+}
+
+const unduTask = (task) => {
+  const index = taskStore.tasks.findIndex(t => t.id === task.id);
+  if (index !== -1) {
+    taskStore.tasks[index].completed = false;
+  }
+}
+
+const doTask = (task) => {
+  const index = taskStore.tasks.findIndex(t => t.id === task.id);
+  if (index !== -1) {
+    if (taskStore.tasks[index].completed) {
+      return
+    }
+    taskStore.tasks[index].completed = true;
+  }
+}
+
 </script>
 <template>
-  <div class="q-pa-md" style="max-width: 350px">
+
+
+  <div class="q-pa-md">
+    <div class="row">
+      <q-btn label="debug" color="primary" class="q-mb-md" @click="debug"/>
+      <q-btn label="Add" color="primary" class="q-mb-md" @click="addDialog = true" />
+    </div>
     <q-list bordered padding>
-      <q-item-label header>User Controls</q-item-label>
+    <!-- <q-select rounded standout v-model="selectedTask" :options="tasksOptions" label="Select Task (for fun)" /> -->
 
-      <q-item clickable v-ripple>
+
+      <q-item 
+        v-for="task in tasks" 
+        :key="task.id" 
+        clickable 
+        @click="doTask(task)"
+        class="bg-deep-purple-10"
+        dark
+        v-ripple
+        :class="{ 'task-completed': task.completed }"
+      >
+        <q-item-section side top v-if="!task.completed">
+          <q-checkbox dark v-model="task.completed" />
+        </q-item-section>
+
         <q-item-section>
-          <q-item-label>Content filtering</q-item-label>
+          <q-item-label>{{ task.name }}</q-item-label>
           <q-item-label caption>
-            Set the content filtering level to restrict
-            apps that can be downloaded
+            Desctription for {{ task.name }}
           </q-item-label>
         </q-item-section>
-      </q-item>
 
-      <q-item clickable v-ripple>
-        <q-item-section>
-          <q-item-label>Password</q-item-label>
-          <q-item-label caption>
-            Require password for purchase or use
-            password to restrict purchase
-          </q-item-label>
-        </q-item-section>
-      </q-item>
+        <q-item-section side class="time">
+          <div class="row">
 
-      <q-separator spaced />
-      <q-item-label header>General</q-item-label>
+            <q-icon name="event" />
+            <div class="column justify-center q-ml-sm">
+              
+              <q-item-label>{{ task.dueDate }}</q-item-label>
+              <q-item-label caption lines="2">{{ task.dueTime }}</q-item-label>
+              
+            </div>
 
-      <q-item tag="label" v-ripple>
-        <q-item-section side top>
-          <q-checkbox v-model="check1" />
+          </div>
         </q-item-section>
-
-        <q-item-section>
-          <q-item-label>Notifications</q-item-label>
-          <q-item-label caption>
-            Notify me about updates to apps or games that I downloaded
-          </q-item-label>
-        </q-item-section>
-      </q-item>
-
-      <q-item tag="label" v-ripple>
-        <q-item-section side top>
-          <q-checkbox v-model="check2" />
-        </q-item-section>
-
-        <q-item-section>
-          <q-item-label>Sound</q-item-label>
-          <q-item-label caption>
-            Auto-update apps at anytime. Data charges may apply
-          </q-item-label>
-        </q-item-section>
-      </q-item>
-
-      <q-item tag="label" v-ripple>
-        <q-item-section side top>
-          <q-checkbox v-model="check3" />
-        </q-item-section>
-
-        <q-item-section>
-          <q-item-label>Auto-add widgets</q-item-label>
-          <q-item-label caption>
-            Automatically add home screen widgets
-          </q-item-label>
-        </q-item-section>
-      </q-item>
-
-      <q-separator spaced />
-      <q-item-label header>Notifications</q-item-label>
-
-      <q-item tag="label" v-ripple>
-        <q-item-section>
-          <q-item-label>Battery too low</q-item-label>
-        </q-item-section>
-        <q-item-section side >
-          <q-toggle color="blue" v-model="notif1" val="battery" />
-        </q-item-section>
-      </q-item>
-
-      <q-item tag="label" v-ripple>
-        <q-item-section>
-          <q-item-label>Friend request</q-item-label>
-          <q-item-label caption>Allow notification</q-item-label>
-        </q-item-section>
-        <q-item-section side top>
-          <q-toggle color="green" v-model="notif2" val="friend" />
-        </q-item-section>
-      </q-item>
-
-      <q-item tag="label" v-ripple>
-        <q-item-section>
-          <q-item-label>Picture uploaded</q-item-label>
-          <q-item-label caption>Allow notification when uploading images</q-item-label>
-        </q-item-section>
-        <q-item-section side top>
-          <q-toggle color="red" v-model="notif3" val="picture" />
-        </q-item-section>
-      </q-item>
-
-      <q-separator spaced />
-      <q-item-label header>Other settings</q-item-label>
-
-      <q-item>
-        <q-item-section side>
-          <q-icon color="teal" name="volume_down" />
-        </q-item-section>
-        <q-item-section>
-          <q-slider
-            v-model="volume"
-            :min="0"
-            :max="10"
-            label
-            color="teal"
+        <!-- UNDO TASK -->
+        <q-item-section side top v-if="task.completed">
+          <q-btn 
+            dense 
+            flat 
+            round 
+            color="primary" 
+            icon="undo" 
+            @click.stop="unduTask(task)" 
           />
         </q-item-section>
-        <q-item-section side>
-          <q-icon color="teal" name="volume_up" />
-        </q-item-section>
-      </q-item>
 
-      <q-item>
-        <q-item-section side>
-          <q-icon color="deep-orange" name="brightness_medium" />
-        </q-item-section>
-        <q-item-section>
-          <q-slider
-            v-model="brightness"
-            :min="0"
-            :max="10"
-            label
-            color="deep-orange"
+        <!-- EDIT -->
+        <q-item-section side top v-if="!task.completed">
+          <q-btn 
+            dense 
+            flat 
+            round 
+            color="warning" 
+            icon="edit" 
+            @click.stop="editTask(task)" 
           />
         </q-item-section>
-      </q-item>
 
-      <q-item>
-        <q-item-section side>
-          <q-icon color="primary" name="mic" />
-        </q-item-section>
-        <q-item-section>
-          <q-slider
-            v-model="mic"
-            :min="0"
-            :max="50"
-            label
+        <!-- DELETE -->
+        <q-item-section side top v-if="!task.completed">
+          <q-btn 
+            dense 
+            flat 
+            round 
+            color="negative" 
+            icon="delete" 
+            @click.stop="confirmDelete(task)" 
           />
         </q-item-section>
+
       </q-item>
+
     </q-list>
+    
   </div>
+
+
+  <AddTaskDialog
+    :open="addDialog"
+    :new-task="formTask"
+    :on-add="addTask"
+    :on-close="closeAddDialog"
+  />
+  <!-- Dialog de confirmación -->
+  <q-dialog v-model="showDeleteDialog" persistent @hide="closeDeleteDialog">
+    <q-card>
+      <q-card-section>
+        <div class="text-h6">Delete Task?</div>
+        <div>Are you sure you want to delete "{{ selectedTask?.name }}"?</div>
+      </q-card-section>
+
+      <q-card-actions align="right">
+        <q-btn flat label="Cancel" color="primary" @click="closeDeleteDialog" />
+        <q-btn flat label="Delete" color="negative" @click="deleteTask" />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
+  <!-- Dialog de edicion -->
+  <q-dialog v-model="showEditDialog" persistent @hide="closeEditDialog">
+    <q-card style="min-width: 350px">
+      <q-card-section>
+        <div class="text-h6">Task name</div>
+      </q-card-section>
+
+      <q-card-section class="q-pt-none">
+        <q-input dense v-model="selectedTask.name" autofocus @keyup.enter="updateTask" />
+      </q-card-section>
+
+      <q-card-actions align="right" class="text-primary">
+        <q-btn flat label="Cancel" v-close-popup />
+        <q-btn flat label="Update task" @click="updateTask" />
+      </q-card-actions>
+    </q-card>
+  </q-dialog>
+
+
+
 </template>
+
+<style scoped>
+.task-completed {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+</style>

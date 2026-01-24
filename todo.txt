@@ -1,0 +1,3 @@
+- Crear array de temas posibles en un archivo a parte. X
+- haces la pantalla de "settings" con las opciones: dark mode, theme, language.
+- implementar un grafito de tortas en el index para tareas terminadas vs pendientes

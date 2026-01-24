@@ -8,28 +8,44 @@
           round
           icon="menu"
           aria-label="Menu"
-          @click="toggleLeftDrawer"
+          @click="ui.toggleLeftDrawer"
         />
           <q-toolbar-title>
             Quasar App
           </q-toolbar-title>
-        <div>Quasar v{{ $q.version }}</div>
+        <div>
+          <q-toggle
+            v-model="ui.dark"
+            checked-icon="dark_mode"
+            unchecked-icon="light_mode"
+            color="secondary"
+          />
+        </div>
       </q-toolbar>
     </q-header>
-    <q-footer>
+    <q-footer reveal elevated>
       <q-tabs>
         <q-route-tab to="/" name="home" icon="home" label="Home"/>
         <q-route-tab to="/todo" name="todo" icon="list" label="ToDo"/>
+        <q-route-tab to="/settings" name="settings" icon="settings" label="Settings"/>
       </q-tabs>
     </q-footer>
     <q-drawer
-      v-model="leftDrawerOpen"
-      show-if-above
+      v-model="ui.leftDrawerOpen"
       bordered
     >
       <q-list>
 
         <q-item-label header>Navigation</q-item-label>
+
+        <q-item clicable to="/">
+          <q-item-section avatar>
+            <q-icon name="home" />
+          </q-item-section>
+          <q-item-section>
+            <q-item-label>Home</q-item-label>
+          </q-item-section>
+        </q-item>
 
         <q-item clicable to="/todo">
           <q-item-section avatar>
@@ -48,6 +64,7 @@
             <q-item-label>Settings</q-item-label>
           </q-item-section>
         </q-item>
+        
 
       </q-list>
     </q-drawer>
@@ -59,11 +76,37 @@
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { useQuasar } from 'quasar'
+import { useUiStore } from 'stores/ui'
+import { watch } from 'vue'
 
-const leftDrawerOpen = ref(false)
+const $q = useQuasar()
+const ui = useUiStore()
 
-function toggleLeftDrawer () {
-  leftDrawerOpen.value = !leftDrawerOpen.value
-}
+ui.init()
+
+watch(
+  () => ui.dark,
+  (val) => {
+    $q.dark.set(val)
+    localStorage.setItem('dark-mode', String(val))
+  },
+  { immediate: true }
+)
+
+watch(
+  () => ui.theme,
+  (val) => {
+    localStorage.setItem('theme', val)
+    ui.applyTheme(val)
+  },
+  { immediate: true }
+)
+
+watch(
+  () => ui.leftDrawerOpen,
+  (val) => {
+    localStorage.setItem('left-drawer-open', String(val))
+  }
+)
 </script>
