@@ -2,6 +2,7 @@
 import { ref, reactive, watch } from 'vue'
 import { useTaskStore } from 'src/stores/task'
 import AddTaskDialog from 'src/components/AddTaskDialog.vue'
+import { Dialog } from 'quasar';
 const taskStore = useTaskStore();
 // Basic Alert
 
@@ -25,6 +26,11 @@ const formTask = reactive({
 const addTask = (newTask) => {
   if (newTask.name.trim() === '') {
     return
+  }
+
+  if(taskStore.tasks.length > 100){
+    alert("Task limit reached (100). Please delete some tasks before adding new ones.");
+    return;
   }
   const id = taskStore.tasks.length ? Math.max(...taskStore.tasks.map(t => t.id)) + 1 : 1
   newTask = {
@@ -108,6 +114,18 @@ const debug = () => {
 }
 
 const unduTask = (task) => {
+  Dialog.create({
+    title: 'Deshacer tarea',
+    message: `¿Estás seguro de que deseas deshacer la tarea "${task.name}"?`,
+    cancel: true,
+  })
+  .onOk( () => {
+    actuallyUnduTask(task)
+  })
+  
+}
+
+const actuallyUnduTask = (task) => {
   const index = taskStore.tasks.findIndex(t => t.id === task.id);
   if (index !== -1) {
     taskStore.tasks[index].completed = false;
@@ -142,8 +160,6 @@ const doTask = (task) => {
         :key="task.id" 
         clickable 
         @click="doTask(task)"
-        class="bg-deep-purple-10"
-        dark
         v-ripple
         :class="{ 'task-completed': task.completed }"
       >

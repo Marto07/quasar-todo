@@ -91,7 +91,10 @@ export default defineConfig((/* ctx */) => {
       // directives: [],
 
       // Quasar plugins
-      plugins: []
+      plugins: [
+        'Dialog', 
+        'Loading'
+      ]
     },
 
     // animations: 'all', // --- includes all animations
@@ -155,7 +158,12 @@ export default defineConfig((/* ctx */) => {
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/developing-capacitor-apps/configuring-capacitor
     capacitor: {
-      hideSplashscreen: true
+      hideSplashscreen: false,
+      splashscreen: {
+        launchShowDuration: 2000,
+        backgroundColor: '#ffffff',
+        showSpinner: false
+      }
     },
 
     // Full list of options: https://v2.quasar.dev/quasar-cli-vite/developing-electron-apps/configuring-electron
